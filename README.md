@@ -9,7 +9,7 @@ A smart automatic travel form addon for **Druids** in The Burning Crusade Classi
 - **Outdoors (non-flyable)** → Travel Form (Cheetah)
 - **Outland zones** → Swift Flight Form
 - **Swimming** → Aquatic Form
-- Safe in combat (does nothing)
+- Safe in combat (fallback to Cheeta or Cat indoors)
 - Real-time detection with frequent indoor/swimming checks
 - Custom keybinding support (including mouse buttons + modifiers)
 
