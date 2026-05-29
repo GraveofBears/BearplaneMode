@@ -21,7 +21,7 @@ A smart automatic travel form addon for **Druids** in The Burning Crusade Classi
 
 ## Recommended Binds
 
-- `SHIFT-BUTTON2` (Shift + Right Click)
+- `SHIFT-MouseWheel Down` (Shift + MouseWeel Down)
 - `ALT-T`
 - `CTRL-BUTTON2`
 
@@ -51,5 +51,5 @@ It rebuilds the macro on the secure button every time your environment changes, 
 
 ---
 
-**Created for TBC Classic Druid QoL**
+**Created by Gravebear**
 Enjoy smoother travel across Azeroth and Outland!
