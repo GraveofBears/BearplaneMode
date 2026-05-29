@@ -1,4 +1,4 @@
-# Bearplane Mode - TBC
+![](https://noobtrap.eu/images/crystallights/BearplaneModeHeader.png)
 
 A smart automatic travel form addon for **Druids** in The Burning Crusade Classic.
 
