@@ -1,0 +1,8 @@
+## Interface: 11506, 20505
+## Title: Bearplane Mode
+## Notes: Fly fast, swim fast, run fast. All with one smart button.
+## Author: Gravebear
+## Version: 1.0.0
+## SavedVariablesPerCharacter: BearplaneMode_Keybind
+
+BearplaneMode.lua
