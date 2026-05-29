@@ -5,4 +5,7 @@
 ## Version: 1.0.0
 ## SavedVariablesPerCharacter: BearplaneMode_Keybind
 
+## OptionalDeps: 
+## LoadOnDemand: 0
+
 BearplaneMode.lua
