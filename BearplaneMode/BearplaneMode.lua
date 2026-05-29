@@ -71,67 +71,81 @@ local INDOOR_SUBZONES = {
 }
 
 local function DetectFormStrategy()
-	local zone = GetZoneText()
-	local subzone = GetSubZoneText()
-	local indoors = IsIndoors()
-	local swimming = IsSwimming()
-	local inCombat = UnitAffectingCombat("player")
+    local zone = GetZoneText()
+    local subzone = GetSubZoneText()
+    local indoors = IsIndoors()
+    local swimming = IsSwimming()
+    local inCombat = UnitAffectingCombat("player")
 
-	if inCombat then
-		return "nocombat", zone
-	end
+    -- We remove the early "nocombat" return and evaluate the environment strategy first.
+    local strategy = "travel"
 
-	if swimming then
-		return "aquatic", zone
-	end
+    if swimming then
+        strategy = "aquatic"
+    elseif OUTDOOR_INSTANCES[zone] then
+        strategy = "travel"
+    elseif indoors or TBC_DUNGEONS[zone] or TBC_DUNGEONS[subzone] or INDOOR_SUBZONES[subzone] then
+        strategy = "cat"
+    elseif OUTLAND_ZONES[zone] then
+        strategy = "flight"
+    end
 
-	-- Outdoor instances - treat like normal outdoors
-	if OUTDOOR_INSTANCES[zone] then
-		return "travel", zone
-	end
-
-	if indoors or TBC_DUNGEONS[zone] or TBC_DUNGEONS[subzone] or INDOOR_SUBZONES[subzone] then
-		return "cat", zone
-	end
-
-	if OUTLAND_ZONES[zone] then
-		return "flight", zone
-	end
-
-	return "travel", zone
+    -- Return the environment choice, the zone, AND whether we are fighting
+    return strategy, zone, inCombat
 end
 
 local function GenerateSmartMacro()
-	local strategy, zone = DetectFormStrategy()
+    local strategy, zone, inCombat = DetectFormStrategy()
 
-	local macro = "#showtooltip\n"
+    local macro = "#showtooltip\n"
 
-	if strategy == "flight" or strategy == "aquatic" then
-		-- If already in flight form, cancel it. Otherwise cast normally.
-		macro = macro .. "/cancelform [flyable,outdoors,nocombat,form:3]\n"
-	else
-		macro = macro .. "/cancelform [nocombat]\n"
-	end
-	macro = macro .. "\n"
+    -- Rules for dropping out of your current form
+    if inCombat then
+        -- In combat: We can only shift safely by powershifting (cancel form + recast).
+        -- We only cancel form if we aren't already in our desired shape to prevent mana wasting.
+        if strategy == "aquatic" then
+            macro = macro .. "/cancelform [noform:2]\n" -- Dropping form if not Aquatic
+        elseif strategy == "cat" then
+            macro = macro .. "/cancelform [noform:3]\n" -- Dropping form if not Cat
+        else
+            macro = macro .. "/cancelform [noform:4]\n" -- Dropping form if not Travel
+        end
+    else
+        -- Out of combat: Use your standard original safety layout
+        if strategy == "flight" or strategy == "aquatic" then
+            macro = macro .. "/cancelform [flyable,outdoors,nocombat,form:3]\n"
+        else
+            macro = macro .. "/cancelform [nocombat]\n"
+        end
+    end
+    macro = macro .. "\n"
 
-	if strategy == "aquatic" then
-		macro = macro .. "/cast [swimming] !Aquatic Form\n"
-		if OUTLAND_ZONES[zone] then
-			macro = macro .. "/cast [noswimming,flyable,outdoors,nocombat,noform:3] Swift Flight Form\n"
-		end
-		macro = macro .. "/cast [noswimming] !Travel Form\n"
+    -- Rules for casting the forms
+    if strategy == "aquatic" then
+        macro = macro .. "/cast [swimming] !Aquatic Form\n"
+        -- Flight form is impossible in combat, so we enforce the nocombat conditional check
+        if OUTLAND_ZONES[zone] then
+            macro = macro .. "/cast [noswimming,flyable,outdoors,nocombat,noform:3] Swift Flight Form\n"
+        end
+        macro = macro .. "/cast [noswimming] !Travel Form\n"
 
-	elseif strategy == "flight" then
-		macro = macro .. "/cast [flyable,outdoors,nocombat,noform:3] Swift Flight Form\n"
+    elseif strategy == "flight" then
+        -- If we enter combat while on the ground in Outland, drop to Travel Form safely
+        if inCombat then
+            macro = macro .. "/cast !Travel Form\n"
+        else
+            macro = macro .. "/cast [flyable,outdoors,nocombat,noform:3] Swift Flight Form\n"
+            macro = macro .. "/cast !Travel Form\n"
+        end
 
-	elseif strategy == "cat" then
-		macro = macro .. "/cast !Cat Form\n"
+    elseif strategy == "cat" then
+        macro = macro .. "/cast !Cat Form\n"
 
-	else
-		macro = macro .. "/cast !Travel Form\n"
-	end
+    else
+        macro = macro .. "/cast !Travel Form\n"
+    end
 
-	return macro
+    return macro
 end
 
 -- ==========================================
@@ -142,7 +156,11 @@ secureBtn:RegisterForClicks("AnyDown")
 secureBtn:SetAttribute("type", "macro")
 
 local function UpdateSecureButton()
-	secureBtn:SetAttribute("macrotext", GenerateSmartMacro())
+    -- If we are in combat, the UI is locked down. 
+    -- Trying to change attributes here causes an action blocked error.
+    if InCombatLockdown() then return end
+    
+    secureBtn:SetAttribute("macrotext", GenerateSmartMacro())
 end
 
 -- Poll for indoor/swimming state changes every 0.1s
