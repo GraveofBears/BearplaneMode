@@ -9,7 +9,7 @@ A smart automatic travel form addon for **Druids** in The Burning Crusade Classi
 - **Outdoors (non-flyable)** → Travel Form
 - **Outland zones** → Swift Flight Form
 - **Swimming** → Aquatic Form
-- Safe in combat
+- Safe in combat - (Travel form fallback)
 - Custom keybinding support (including mouse buttons + modifiers)
 
 ## How to Use
