@@ -151,22 +151,6 @@ end)
 -- ==========================================
 local function ClearAllBearplaneBindings()
     ClearOverrideBindings(secureBtn)
-
-    local keysToClear = {}
-    for i = 1, GetNumBindings() do
-        local command, _, key1, key2 = GetBinding(i)
-        if command == "CLICK BearplaneModeButton:LeftButton" then
-            if key1 and key1 ~= "" then table.insert(keysToClear, key1) end
-            if key2 and key2 ~= "" then table.insert(keysToClear, key2) end
-        end
-    end
-
-    if #keysToClear > 0 then
-        for _, key in ipairs(keysToClear) do
-            SetBinding(key, nil)
-        end
-        SaveBindings(GetCurrentBindingSet())
-    end
 end
 
 local function ApplyBinding(key)
@@ -433,7 +417,6 @@ end
 -- ==========================================
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "ADDON_LOADED" and ... == addonName then
-        ClearAllBearplaneBindings()
         UpdateSecureButton()
 
     elseif event == "PLAYER_LOGIN" then
