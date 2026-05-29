@@ -5,11 +5,11 @@ A smart automatic travel form addon for **Druids** in The Burning Crusade Classi
 ## Features
 
 - Automatically picks the best travel form based on your location
-- **Indoors / Cities / Dungeons** → Cat Form
-- **Outdoors (non-flyable)** → Travel Form (Cheetah)
+- **Indoors / Dungeons** → Cat Form (BM and Durnhold will allow for Travel Form)
+- **Outdoors (non-flyable)** → Travel Form
 - **Outland zones** → Swift Flight Form
 - **Swimming** → Aquatic Form
-- Safe in combat (fallback to Cheeta or Cat indoors)
+- Safe in combat
 - Custom keybinding support (including mouse buttons + modifiers)
 
 ## How to Use
