@@ -8,7 +8,10 @@ frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
-BearplaneMode_Keybind = BearplaneMode_Keybind or "BUTTON2"
+BearplaneMode_Keybind = BearplaneMode_Keybind or ""
+if BearplaneMode_FirstRun == nil then
+    BearplaneMode_FirstRun = true
+end
 
 local configWindow, promptWindow
 local pendingKey = nil
@@ -99,7 +102,8 @@ local function GenerateSmartMacro()
     elseif strategy == "flight" then
         macro = macro .. "/cast [combat] Travel Form\n"
         macro = macro .. "/cancelform [nostance:0,nocombat]\n"
-        macro = macro .. "/cast [nocombat,flyable,outdoors] Swift Flight Form\n"
+        macro = macro .. "/cast [nocombat,flyable,outdoors,known:Swift Flight Form] Swift Flight Form\n"
+        macro = macro .. "/cast [nocombat,flyable,outdoors,unknown:Swift Flight Form] Flight Form\n"
 
     elseif strategy == "cat" then
         macro = macro .. "/cancelform [nostance:3,nocombat]\n"
@@ -423,6 +427,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ClearAllBearplaneBindings()
         RestoreBinding()
         UpdateSecureButton()
+        if BearplaneMode_FirstRun then
+            BearplaneMode_FirstRun = false
+            C_Timer.After(2, function()
+                CreateConfigWindow():Show()
+                print("|cff00ff00[Bearplane Mode]|r Welcome! Please set a keybind to get started.")
+            end)
+        end
 
     elseif event == "PLAYER_ENTERING_WORLD" or
            event == "ZONE_CHANGED" or 

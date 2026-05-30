@@ -2,8 +2,8 @@
 ## Title: Bearplane Mode
 ## Notes: Fly fast, swim fast, run fast. All with one smart button.
 ## Author: Gravebear
-## Version: 1.0.1
-## SavedVariablesPerCharacter: BearplaneMode_Keybind
+## Version: 1.0.2
+## SavedVariablesPerCharacter: BearplaneMode_Keybind, BearplaneMode_FirstRun
 
 ## OptionalDeps: 
 ## LoadOnDemand: 0
