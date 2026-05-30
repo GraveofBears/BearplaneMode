@@ -9,9 +9,8 @@ frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 
 BearplaneMode_Keybind = BearplaneMode_Keybind or ""
-if BearplaneMode_FirstRun == nil then
-    BearplaneMode_FirstRun = true
-end
+if BearplaneMode_FirstRun == nil then BearplaneMode_FirstRun = true end
+BearplaneMode_FlightForm = BearplaneMode_FlightForm or "swift"
 
 local configWindow, promptWindow
 local pendingKey = nil
@@ -100,9 +99,10 @@ local function GenerateSmartMacro()
         macro = macro .. "/cast [noswimming] !Travel Form\n"
 
     elseif strategy == "flight" then
+        local flightSpell = (BearplaneMode_FlightForm == "swift") and "Swift Flight Form" or "Flight Form"
         macro = macro .. "/cast [combat] Travel Form\n"
         macro = macro .. "/cancelform [nocombat]\n"
-        macro = macro .. "/cast [nocombat,flyable,outdoors] Swift Flight Form\n"
+        macro = macro .. "/cast [nocombat,flyable,outdoors] " .. flightSpell .. "\n"
 
     elseif strategy == "cat" then
         macro = macro .. "/cancelform [stance:3,nocombat]\n"
@@ -243,7 +243,7 @@ end
 local function CreateConfigWindow()
     if configWindow then return configWindow end
     local f = CreateFrame("Frame", "BearplaneConfigFrame", UIParent, "BackdropTemplate")
-    f:SetSize(400, 260)
+    f:SetSize(360, 290)
     f:SetPoint("CENTER", UIParent, "CENTER")
     f:SetFrameStrata("HIGH")
     f:EnableMouse(true)
@@ -259,60 +259,86 @@ local function CreateConfigWindow()
         insets = { left = 11, right = 12, top = 12, bottom = 11 }
     })
 
+    -- Title
     f.title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     f.title:SetPoint("TOP", f, "TOP", 0, -18)
-    f.title:SetText("Bearplane Mode - TBC Edition")
+    f.title:SetJustifyH("CENTER")
+    f.title:SetText("Bearplane Mode - TBC")
 
+    -- Current bind
     f.currentBindText = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    f.currentBindText:SetPoint("TOP", f.title, "BOTTOM", 0, -15)
-    f.currentBindText:SetText("Current Bind: |cff00ff00" .. (BearplaneMode_Keybind ~= "" and BearplaneMode_Keybind or "|cffff0000None") .. "|r")
+    f.currentBindText:SetPoint("TOP", f.title, "BOTTOM", 0, -12)
+    f.currentBindText:SetJustifyH("CENTER")
+    local bindDisplay = (BearplaneMode_Keybind ~= "" and "|cff00ff00" .. BearplaneMode_Keybind or "|cffff0000None") .. "|r"
+    f.currentBindText:SetText("Current Bind: " .. bindDisplay)
 
+    -- Info text
     f.infoText = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
     f.infoText:SetPoint("TOP", f.currentBindText, "BOTTOM", 0, -10)
+    f.infoText:SetJustifyH("CENTER")
     f.infoText:SetText("Click below, then press your desired hotkey.")
 
-    f.statusText = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    f.statusText:SetPoint("TOP", f.infoText, "BOTTOM", 0, -15)
-    f.statusText:SetText("|cffaabbccStatus:|r Detecting...")
-    f.statusText:SetWidth(350)
-    f.statusText:SetJustifyH("CENTER")
-
-    local function UpdateStatusDisplay()
-        local strategy, zone = DetectFormStrategy()
-        local status
-        if strategy == "aquatic" then
-            status = "|cff00ffffSWIMMING|r -> Aquatic Form"
-        elseif strategy == "cat" then
-            local indoors = IsIndoors()
-            status = (indoors and "|cffff6600INDOORS|r" or "|cffff6600DUNGEON|r") .. " -> Cat Form"
-        elseif strategy == "flight" then
-            status = "|cff00ff00OUTLAND|r -> Swift Flight Form"
-        else
-            status = "|cff88ccffOUTDOORS|r -> Travel Form"
-        end
-        f.statusText:SetText("|cffaabbccStatus:|r " .. status .. " (" .. zone .. ")")
-    end
-
+    -- Bind New Key button
     local bindBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     bindBtn:SetSize(160, 30)
-    bindBtn:SetPoint("CENTER", f, "CENTER", 0, -20)
+    bindBtn:SetPoint("TOP", f.infoText, "BOTTOM", 0, -14)
     bindBtn:SetText("Bind New Key")
 
-    local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    closeBtn:SetSize(100, 22)
-    closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 20)
-    closeBtn:SetText("Close")
-    closeBtn:SetScript("OnClick", function() f:Hide() end)
-
+    -- Unbind button
     local unbindBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    unbindBtn:SetSize(120, 22)
-    unbindBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 48)
+    unbindBtn:SetSize(120, 24)
+    unbindBtn:SetPoint("TOP", bindBtn, "BOTTOM", 0, -6)
     unbindBtn:SetText("Unbind Hotkey")
     unbindBtn:SetScript("OnClick", function()
         UnbindKey()
         f.currentBindText:SetText("Current Bind: |cffff0000None|r")
     end)
 
+    -- Flight Form label
+    local flightLabel = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    flightLabel:SetPoint("TOP", unbindBtn, "BOTTOM", 0, -14)
+    flightLabel:SetJustifyH("CENTER")
+    flightLabel:SetText("Flight Form:")
+
+    -- Swift Flight Form checkbox
+    local swiftCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    swiftCheck:SetPoint("TOP", flightLabel, "BOTTOM", 0, -4)
+    swiftCheck:SetPoint("LEFT", f, "CENTER", -60, 0)
+    swiftCheck.text:SetText("Swift Flight Form")
+
+    -- Flight Form checkbox (stacked below)
+    local normalCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    normalCheck:SetPoint("TOP", swiftCheck, "BOTTOM", 0, -2)
+    normalCheck:SetPoint("LEFT", swiftCheck, "LEFT", 0, 0)
+    normalCheck.text:SetText("Flight Form")
+
+    local function UpdateFlightChecks()
+        swiftCheck:SetChecked(BearplaneMode_FlightForm == "swift")
+        normalCheck:SetChecked(BearplaneMode_FlightForm == "normal")
+    end
+    UpdateFlightChecks()
+
+    swiftCheck:SetScript("OnClick", function()
+        BearplaneMode_FlightForm = "swift"
+        UpdateFlightChecks()
+        UpdateSecureButton()
+    end)
+
+    normalCheck:SetScript("OnClick", function()
+        BearplaneMode_FlightForm = "normal"
+        UpdateFlightChecks()
+        UpdateSecureButton()
+    end)
+
+    -- Close button
+    local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    closeBtn:SetSize(100, 22)
+    closeBtn:SetPoint("TOP", normalCheck, "BOTTOM", 0, -10)
+    closeBtn:SetPoint("LEFT", f, "CENTER", -50, 0)
+    closeBtn:SetText("Close")
+    closeBtn:SetScript("OnClick", function() f:Hide() end)
+
+    -- Key input logic
     local pressedBaseKey = nil
     local collectedModifiers = ""
 
@@ -383,18 +409,6 @@ local function CreateConfigWindow()
 
     f:SetScript("OnKeyDown", function(_, key) QueueInput(key) end)
 
-    f:SetScript("OnShow", function()
-        UpdateStatusDisplay()
-    end)
-
-    local statusTicker
-    f:HookScript("OnShow", function()
-        if statusTicker then statusTicker:Cancel() end
-        statusTicker = C_Timer.NewTicker(0.5, function()
-            if f:IsShown() then UpdateStatusDisplay() end
-        end)
-    end)
-
     f:SetScript("OnHide", function()
         if isListening then
             f:SetScript("OnUpdate", nil)
@@ -403,10 +417,6 @@ local function CreateConfigWindow()
             bindBtn:SetText("Bind New Key")
             isListening = false
             pressedBaseKey = nil
-        end
-        if statusTicker then
-            statusTicker:Cancel()
-            statusTicker = nil
         end
     end)
 
