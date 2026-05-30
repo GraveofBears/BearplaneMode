@@ -122,17 +122,13 @@ end
 local secureBtn = CreateFrame("Button", "BearplaneModeButton", UIParent, "SecureActionButtonTemplate")
 secureBtn:RegisterForClicks("AnyDown", "AnyUp")
 secureBtn:SetAttribute("type", "macro")
-
--- The Fix: Assign the dynamic macro layout to fire regardless of what 
--- click type or modifier code is passed to the button frame down the chain.
-secureBtn:SetAttribute("macrotext*", "") 
+secureBtn:SetAttribute("macrotext*", "")
 
 local function UpdateSecureButton()
     if InCombatLockdown() then return end
-    
     local macroText = GenerateSmartMacro()
     secureBtn:SetAttribute("macrotext", macroText)
-    secureBtn:SetAttribute("macrotext*", macroText) -- Applies layout to all wildcard macro clicks
+    secureBtn:SetAttribute("macrotext*", macroText)
 end
 
 frame:SetScript("OnUpdate", function(self, elapsed)
@@ -158,12 +154,9 @@ end
 
 local function ApplyBinding(key)
     if not key or key == "" then return end
-
     ClearAllBearplaneBindings()
     SetOverrideBindingClick(secureBtn, true, key, "BearplaneModeButton")
-
     BearplaneMode_Keybind = key
-
     if configWindow and configWindow.currentBindText then
         configWindow.currentBindText:SetText("Current Bind: |cff00ff00" .. key .. "|r")
     end
@@ -181,7 +174,6 @@ local function UnbindKey()
     if BearplaneMode_Keybind and BearplaneMode_Keybind ~= "" then
         ClearAllBearplaneBindings()
         BearplaneMode_Keybind = ""
-        
         if configWindow and configWindow.currentBindText then
             configWindow.currentBindText:SetText("Current Bind: |cffff0000None|r")
         end
@@ -190,39 +182,186 @@ local function UnbindKey()
 end
 
 -- ==========================================
--- UI
+-- UI HELPERS
+-- ==========================================
+
+-- Creates a styled airline-look button (gold border, dark bg, white text)
+local function CreateAirlineButton(parent, w, h, label)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetSize(w, h)
+
+    -- Dark background texture
+    local bg = btn:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.08, 0.06, 0.12, 0.95)
+
+    -- Gold top border
+    local borderTop = btn:CreateTexture(nil, "BORDER")
+    borderTop:SetHeight(1)
+    borderTop:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+    borderTop:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+    borderTop:SetColorTexture(0.85, 0.72, 0.30, 1)
+
+    -- Gold bottom border
+    local borderBot = btn:CreateTexture(nil, "BORDER")
+    borderBot:SetHeight(1)
+    borderBot:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+    borderBot:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+    borderBot:SetColorTexture(0.85, 0.72, 0.30, 1)
+
+    -- Gold left border
+    local borderL = btn:CreateTexture(nil, "BORDER")
+    borderL:SetWidth(1)
+    borderL:SetPoint("TOPLEFT", btn, "TOPLEFT", 0, 0)
+    borderL:SetPoint("BOTTOMLEFT", btn, "BOTTOMLEFT", 0, 0)
+    borderL:SetColorTexture(0.85, 0.72, 0.30, 1)
+
+    -- Gold right border
+    local borderR = btn:CreateTexture(nil, "BORDER")
+    borderR:SetWidth(1)
+    borderR:SetPoint("TOPRIGHT", btn, "TOPRIGHT", 0, 0)
+    borderR:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 0, 0)
+    borderR:SetColorTexture(0.85, 0.72, 0.30, 1)
+
+    -- Button label
+    local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    fs:SetAllPoints()
+    fs:SetJustifyH("CENTER")
+    fs:SetJustifyV("MIDDLE")
+    fs:SetText(label)
+    fs:SetTextColor(0.95, 0.88, 0.60)
+    btn.label = fs
+
+    btn:SetScript("OnEnter", function(self)
+        bg:SetColorTexture(0.18, 0.14, 0.28, 0.98)
+        fs:SetTextColor(1, 1, 1)
+    end)
+    btn:SetScript("OnLeave", function(self)
+        bg:SetColorTexture(0.08, 0.06, 0.12, 0.95)
+        fs:SetTextColor(0.95, 0.88, 0.60)
+    end)
+
+    return btn
+end
+
+-- Creates a styled airline radio/checkbox
+local function CreateAirlineCheck(parent, label)
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetSize(200, 26)
+
+    local box = CreateFrame("Frame", nil, container)
+    box:SetSize(16, 16)
+    box:SetPoint("LEFT", container, "LEFT", 0, 0)
+
+    local boxBg = box:CreateTexture(nil, "BACKGROUND")
+    boxBg:SetAllPoints()
+    boxBg:SetColorTexture(0.06, 0.05, 0.10, 1)
+
+    local boxBorder = box:CreateTexture(nil, "BORDER")
+    boxBorder:SetPoint("TOPLEFT", box, "TOPLEFT", 0, 0)
+    boxBorder:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 0, 0)
+    boxBorder:SetColorTexture(0.85, 0.72, 0.30, 1)
+
+    local innerBg = box:CreateTexture(nil, "ARTWORK")
+    innerBg:SetPoint("TOPLEFT", box, "TOPLEFT", 1, -1)
+    innerBg:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -1, 1)
+    innerBg:SetColorTexture(0.06, 0.05, 0.10, 1)
+    box.innerBg = innerBg
+
+    local checkMark = box:CreateTexture(nil, "OVERLAY")
+    checkMark:SetSize(10, 10)
+    checkMark:SetPoint("CENTER", box, "CENTER")
+    checkMark:SetColorTexture(0.85, 0.72, 0.30, 1)
+    checkMark:Hide()
+    box.checkMark = checkMark
+
+    local fs = container:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    fs:SetPoint("LEFT", box, "RIGHT", 8, 0)
+    fs:SetText(label)
+    fs:SetTextColor(0.85, 0.80, 0.65)
+
+    container.box = box
+    container._checked = false
+
+    function container:SetChecked(val)
+        self._checked = val
+        if val then
+            box.checkMark:Show()
+            box.innerBg:SetColorTexture(0.15, 0.10, 0.05, 1)
+            fs:SetTextColor(1, 0.95, 0.70)
+        else
+            box.checkMark:Hide()
+            box.innerBg:SetColorTexture(0.06, 0.05, 0.10, 1)
+            fs:SetTextColor(0.85, 0.80, 0.65)
+        end
+    end
+
+    function container:GetChecked()
+        return self._checked
+    end
+
+    container:EnableMouse(true)
+    return container
+end
+
+-- Horizontal rule texture
+local function AddDivider(parent, yOffset, anchorFrame)
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetHeight(1)
+    line:SetPoint("LEFT", parent, "LEFT", 18, 0)
+    line:SetPoint("RIGHT", parent, "RIGHT", -18, 0)
+    if anchorFrame then
+        line:SetPoint("TOP", anchorFrame, "BOTTOM", 0, yOffset)
+    end
+    line:SetColorTexture(0.85, 0.72, 0.30, 0.35)
+    return line
+end
+
+-- ==========================================
+-- PROMPT WINDOW (styled)
 -- ==========================================
 local function CreatePromptWindow()
     if promptWindow then return promptWindow end
     local pf = CreateFrame("Frame", "BearplanePromptFrame", UIParent, "BackdropTemplate")
-    pf:SetSize(320, 140)
+    pf:SetSize(340, 160)
     pf:SetPoint("CENTER", UIParent, "CENTER", 0, 50)
     pf:SetFrameStrata("DIALOG")
+
     pf:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true, tileSize = 32, edgeSize = 32,
-        insets = { left = 11, right = 12, top = 12, bottom = 11 }
+        tile = false, tileSize = 32, edgeSize = 26,
+        insets = { left = 9, right = 10, top = 10, bottom = 9 }
     })
+    pf:SetBackdropColor(0.05, 0.04, 0.08, 0.97)
+    pf:SetBackdropBorderColor(0.85, 0.72, 0.30, 0.90)
+
+    -- Header stripe
+    local stripe = pf:CreateTexture(nil, "BACKGROUND")
+    stripe:SetHeight(28)
+    stripe:SetPoint("TOPLEFT", pf, "TOPLEFT", 2, -2)
+    stripe:SetPoint("TOPRIGHT", pf, "TOPRIGHT", -2, -2)
+    stripe:SetColorTexture(0.12, 0.09, 0.20, 1)
+
+    local stripeText = pf:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    stripeText:SetPoint("TOP", pf, "TOP", 0, -12)
+    stripeText:SetJustifyH("CENTER")
+    stripeText:SetText("|cffD4AF37✦ BEARPLANE AIRLINES — CONFLICT DETECTED ✦|r")
 
     pf.text = pf:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    pf.text:SetPoint("TOP", pf, "TOP", 0, -30)
-    pf.text:SetWidth(260)
+    pf.text:SetPoint("TOP", stripeText, "BOTTOM", 0, -14)
+    pf.text:SetWidth(280)
     pf.text:SetJustifyH("CENTER")
 
-    local yesBtn = CreateFrame("Button", nil, pf, "UIPanelButtonTemplate")
-    yesBtn:SetSize(90, 24)
-    yesBtn:SetPoint("BOTTOMLEFT", pf, "BOTTOMLEFT", 40, 25)
-    yesBtn:SetText("Yes")
+    local yesBtn = CreateAirlineButton(pf, 100, 28, "CONFIRM")
+    yesBtn:SetPoint("BOTTOMLEFT", pf, "BOTTOMLEFT", 30, 20)
     yesBtn:SetScript("OnClick", function()
         if pendingKey then ApplyBinding(pendingKey); pendingKey = nil end
         pf:Hide()
     end)
 
-    local noBtn = CreateFrame("Button", nil, pf, "UIPanelButtonTemplate")
-    noBtn:SetSize(90, 24)
-    noBtn:SetPoint("BOTTOMRIGHT", pf, "BOTTOMRIGHT", -40, 25)
-    noBtn:SetText("No")
+    local noBtn = CreateAirlineButton(pf, 100, 28, "CANCEL")
+    noBtn:SetPoint("BOTTOMRIGHT", pf, "BOTTOMRIGHT", -30, 20)
     noBtn:SetScript("OnClick", function()
         pendingKey = nil
         pf:Hide()
@@ -236,14 +375,18 @@ end
 local function ShowOverwritePrompt(key, currentAction)
     local pf = CreatePromptWindow()
     pendingKey = key
-    pf.text:SetText(string.format("The key |cff00ffff%s|r is already bound to:\n|cffffd100%s|r\n\nOverwrite?", key, currentAction))
+    pf.text:SetText(string.format("Key |cff00ffff%s|r is currently assigned to:\n|cffffd100%s|r\n\nOverwrite with Bearplane binding?", key, currentAction))
     pf:Show()
 end
 
+-- ==========================================
+-- MAIN CONFIG WINDOW (Airline Style)
+-- ==========================================
 local function CreateConfigWindow()
     if configWindow then return configWindow end
+
     local f = CreateFrame("Frame", "BearplaneConfigFrame", UIParent, "BackdropTemplate")
-    f:SetSize(360, 290)
+    f:SetSize(380, 340)
     f:SetPoint("CENTER", UIParent, "CENTER")
     f:SetFrameStrata("HIGH")
     f:EnableMouse(true)
@@ -252,65 +395,109 @@ local function CreateConfigWindow()
     f:SetScript("OnDragStart", f.StartMoving)
     f:SetScript("OnDragStop", f.StopMovingOrSizing)
 
+    -- Main backdrop: near-black with gold border
     f:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-        tile = true, tileSize = 32, edgeSize = 32,
-        insets = { left = 11, right = 12, top = 12, bottom = 11 }
+        tile = false, tileSize = 32, edgeSize = 28,
+        insets = { left = 10, right = 11, top = 11, bottom = 10 }
     })
+    f:SetBackdropColor(0.05, 0.04, 0.09, 0.97)
+    f:SetBackdropBorderColor(0.85, 0.72, 0.30, 0.95)
 
-    -- Title
-    f.title = f:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    f.title:SetPoint("TOP", f, "TOP", 0, -18)
-    f.title:SetJustifyH("CENTER")
-    f.title:SetText("Bearplane Mode - TBC")
+    -- ── Header band ──────────────────────────────────────
+    local header = CreateFrame("Frame", nil, f)
+    header:SetHeight(62)
+    header:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -2)
+    header:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -2)
 
-    -- Current bind
-    f.currentBindText = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    f.currentBindText:SetPoint("TOP", f.title, "BOTTOM", 0, -12)
+    local headerBg = header:CreateTexture(nil, "BACKGROUND")
+    headerBg:SetAllPoints()
+    headerBg:SetColorTexture(0.10, 0.07, 0.18, 1)
+
+    -- Gold top stripe
+    local headerLine = header:CreateTexture(nil, "BORDER")
+    headerLine:SetHeight(2)
+    headerLine:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
+    headerLine:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 0)
+    headerLine:SetColorTexture(0.85, 0.72, 0.30, 0.9)
+
+    -- BPM Logo (top-left corner of header)
+    local logo = header:CreateTexture(nil, "ARTWORK")
+    logo:SetSize(80, 80)
+    logo:SetPoint("LEFT", header, "LEFT", 10, 0)
+    logo:SetTexture("Interface\\AddOns\\BearplaneMode\\BPMlogo")
+    -- Fallback: show a colored box if logo not found
+    logo:SetTexCoord(0, 1, 0, 1)
+
+    -- BPM name & tagline (offset right of logo)
+    local bpmodeName = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    bpmodeName:SetPoint("TOPLEFT", header, "TOPLEFT", 100, -12)
+    bpmodeName:SetText("|cffD4AF37BEARPLANE MODE|r")
+
+    local tagline = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    tagline:SetPoint("TOPLEFT", bpmodeName, "BOTTOMLEFT", 0, -3)
+    tagline:SetText("|cff9988bbSkybound · Seabound · Unbound|r")
+
+    local version = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    version:SetPoint("TOPRIGHT", header, "TOPRIGHT", -10, -8)
+    version:SetText("|cff665577v1.0.4|r")
+
+    -- ── Keybind section ──────────────────────────────────
+    local section1Label = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    section1Label:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 18, -14)
+    section1Label:SetText("|cffD4AF37>>|r |cffccbbaaKEYBIND CONFIGURATION|r")
+
+    -- Current bind highlighted box
+    local bindBox = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    bindBox:SetSize(316, 30)
+    bindBox:SetPoint("TOPLEFT", section1Label, "BOTTOMLEFT", 0, -8)
+    bindBox:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    bindBox:SetBackdropColor(0.06, 0.08, 0.04, 0.95)
+    bindBox:SetBackdropBorderColor(0.85, 0.72, 0.30, 0.9)
+
+    f.currentBindText = bindBox:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    f.currentBindText:SetPoint("CENTER", bindBox, "CENTER")
     f.currentBindText:SetJustifyH("CENTER")
-    local bindDisplay = (BearplaneMode_Keybind ~= "" and "|cff00ff00" .. BearplaneMode_Keybind or "|cffff0000None") .. "|r"
-    f.currentBindText:SetText("Current Bind: " .. bindDisplay)
+    local bindDisplay = (BearplaneMode_Keybind ~= "" and "|cff00ff00" .. BearplaneMode_Keybind or "|cffff4444None") .. "|r"
+    f.currentBindText:SetText("Current Bind:  " .. bindDisplay)
 
-    -- Info text
-    f.infoText = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    f.infoText:SetPoint("TOP", f.currentBindText, "BOTTOM", 0, -10)
-    f.infoText:SetJustifyH("CENTER")
-    f.infoText:SetText("Click below, then press your desired hotkey.")
+    local infoText = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    infoText:SetPoint("TOPLEFT", bindBox, "BOTTOMLEFT", 0, -6)
+    infoText:SetText("|cff887799Click 'Bind New Key', then press your desired hotkey.|r")
 
-    -- Bind New Key button
-    local bindBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    bindBtn:SetSize(160, 30)
-    bindBtn:SetPoint("TOP", f.infoText, "BOTTOM", 0, -14)
-    bindBtn:SetText("Bind New Key")
+    -- Bind / Unbind buttons side by side
+    local bindBtn = CreateAirlineButton(f, 154, 30, "BIND NEW KEY")
+    bindBtn:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -12)
 
-    -- Unbind button
-    local unbindBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    unbindBtn:SetSize(120, 24)
-    unbindBtn:SetPoint("TOP", bindBtn, "BOTTOM", 0, -6)
-    unbindBtn:SetText("Unbind Hotkey")
+    local unbindBtn = CreateAirlineButton(f, 154, 30, "UNBIND HOTKEY")
+    unbindBtn:SetPoint("TOPLEFT", bindBtn, "TOPRIGHT", 8, 0)
+
     unbindBtn:SetScript("OnClick", function()
         UnbindKey()
         f.currentBindText:SetText("Current Bind: |cffff0000None|r")
     end)
 
-    -- Flight Form label
-    local flightLabel = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    flightLabel:SetPoint("TOP", unbindBtn, "BOTTOM", 0, -14)
-    flightLabel:SetJustifyH("CENTER")
-    flightLabel:SetText("Flight Form:")
+    -- Divider
+    local div1 = AddDivider(f, -10, bindBtn)
 
-    -- Swift Flight Form checkbox
-    local swiftCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
-    swiftCheck:SetPoint("TOP", flightLabel, "BOTTOM", 0, -4)
-    swiftCheck:SetPoint("LEFT", f, "CENTER", -60, 0)
-    swiftCheck.text:SetText("Swift Flight Form")
+    -- ── Flight Form section ──────────────────────────────
+    local section2Label = f:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    section2Label:SetPoint("TOP", div1, "BOTTOM", 0, -12)
+    section2Label:SetJustifyH("CENTER")
+    section2Label:SetText("|cffD4AF37>>|r |cffccbbaaFLIGHT FORM SELECTION|r")
 
-    -- Flight Form checkbox (stacked below)
-    local normalCheck = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
-    normalCheck:SetPoint("TOP", swiftCheck, "BOTTOM", 0, -2)
-    normalCheck:SetPoint("LEFT", swiftCheck, "LEFT", 0, 0)
-    normalCheck.text:SetText("Flight Form")
+    local swiftCheck = CreateAirlineCheck(f, "Swift Flight Form")
+    swiftCheck:SetPoint("TOP", section2Label, "BOTTOM", 0, -10)
+    swiftCheck:SetPoint("LEFT", f, "CENTER", -90, 0)
+
+    local normalCheck = CreateAirlineCheck(f, "Flight Form")
+    normalCheck:SetPoint("TOP", swiftCheck, "BOTTOM", 0, -6)
+    normalCheck:SetPoint("LEFT", f, "CENTER", -90, 0)
 
     local function UpdateFlightChecks()
         swiftCheck:SetChecked(BearplaneMode_FlightForm == "swift")
@@ -318,27 +505,29 @@ local function CreateConfigWindow()
     end
     UpdateFlightChecks()
 
-    swiftCheck:SetScript("OnClick", function()
+    swiftCheck:SetScript("OnMouseDown", function()
         BearplaneMode_FlightForm = "swift"
         UpdateFlightChecks()
         UpdateSecureButton()
     end)
 
-    normalCheck:SetScript("OnClick", function()
+    normalCheck:SetScript("OnMouseDown", function()
         BearplaneMode_FlightForm = "normal"
         UpdateFlightChecks()
         UpdateSecureButton()
     end)
 
-    -- Close button
-    local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    closeBtn:SetSize(100, 22)
-    closeBtn:SetPoint("TOP", normalCheck, "BOTTOM", 0, -10)
-    closeBtn:SetPoint("LEFT", f, "CENTER", -50, 0)
-    closeBtn:SetText("Close")
+    -- Divider
+    local div2 = AddDivider(f, -10, normalCheck)
+
+    -- Centered close button
+    local closeBtn = CreateAirlineButton(f, 120, 28, "CLOSE")
+    closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 10)
     closeBtn:SetScript("OnClick", function() f:Hide() end)
 
-    -- Key input logic
+    -- ==========================================
+    -- KEY INPUT LOGIC
+    -- ==========================================
     local pressedBaseKey = nil
     local collectedModifiers = ""
 
@@ -346,7 +535,7 @@ local function CreateConfigWindow()
         f:SetScript("OnUpdate", nil)
         f:EnableKeyboard(false)
         if f.mouseCatcher then f.mouseCatcher:Hide() end
-        bindBtn:SetText("Bind New Key")
+        bindBtn.label:SetText("BIND NEW KEY")
         isListening = false
         if not pressedBaseKey then return end
 
@@ -379,7 +568,7 @@ local function CreateConfigWindow()
 
     bindBtn:SetScript("OnClick", function(self)
         if isListening then return end
-        self:SetText("|cff00ffffListening...|r")
+        bindBtn.label:SetText("|cff00ffffLISTENING...|r")
         pressedBaseKey = nil
         collectedModifiers = ""
         isListening = true
@@ -414,7 +603,7 @@ local function CreateConfigWindow()
             f:SetScript("OnUpdate", nil)
             f:EnableKeyboard(false)
             if f.mouseCatcher then f.mouseCatcher:Hide() end
-            bindBtn:SetText("Bind New Key")
+            bindBtn.label:SetText("BIND NEW KEY")
             isListening = false
             pressedBaseKey = nil
         end
@@ -445,7 +634,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         end
 
     elseif event == "PLAYER_ENTERING_WORLD" or
-           event == "ZONE_CHANGED" or 
+           event == "ZONE_CHANGED" or
            event == "ZONE_CHANGED_NEW_AREA" or
            event == "PLAYER_REGEN_ENABLED" then
         UpdateSecureButton()
