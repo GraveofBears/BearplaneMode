@@ -95,22 +95,21 @@ local function GenerateSmartMacro()
     local macro = "#showtooltip\n"
 
     if strategy == "aquatic" then
-        macro = macro .. "/cancelform [nostance:2,nocombat]\n"
+        macro = macro .. "/cancelform [stance:2,nocombat]\n"
         macro = macro .. "/cast [swimming] !Aquatic Form\n"
         macro = macro .. "/cast [noswimming] !Travel Form\n"
 
     elseif strategy == "flight" then
         macro = macro .. "/cast [combat] Travel Form\n"
-        macro = macro .. "/cancelform [nostance:0,nocombat]\n"
-        macro = macro .. "/cast [nocombat,flyable,outdoors,known:Swift Flight Form] Swift Flight Form\n"
-        macro = macro .. "/cast [nocombat,flyable,outdoors,unknown:Swift Flight Form] Flight Form\n"
+        macro = macro .. "/cancelform [nocombat]\n"
+        macro = macro .. "/cast [nocombat,flyable,outdoors] Swift Flight Form\n"
 
     elseif strategy == "cat" then
-        macro = macro .. "/cancelform [nostance:3,nocombat]\n"
+        macro = macro .. "/cancelform [stance:3,nocombat]\n"
         macro = macro .. "/cast !Cat Form\n"
 
     else
-        macro = macro .. "/cancelform [nostance:4,nocombat]\n"
+        macro = macro .. "/cancelform [stance:4,nocombat]\n"
         macro = macro .. "/cast !Travel Form\n"
     end
 
